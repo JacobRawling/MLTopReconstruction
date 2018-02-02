@@ -1,8 +1,5 @@
 """ 
-    Converts a ROOT ntuple formatted in a way defined by internal ATLAS structures
-    and outputs a CSV that can then be processed by pandas, R, etc.
-
-
+    Converts a ROOT file with up to two tuples into a tuple 
 """
 
 import settings as s
@@ -28,20 +25,36 @@ class TupleCSVConverter:
             truth_tuple_name,
             output_folder,
             cuts = [""],
-            truth_variables    = [""],
-            detector_variables = [""],
+            truth_variables    = [],
+            detector_variables = [],
             verbosity = 1,
             create_custom_header= None,
             add_custom_variables= None,
+            weight              = "1.0",
+            index_variable      = None
         ):
-        """
+        """ 
+            Converts a TTree to a csv file 
 
+            input_file:           Root file input path 
+            detector_tuple_name:  name of the first tuple in the root file 
+            truth_tuple_name:     name of a second tuple in the file
+            output_folder:        location that the csv will be saved to
+            cuts:                 A list of cuts for the reco events 
+            truth_variables:      A list of strings that can be evaluate upon the truth tuple
+            detector_variables:   A list of strings that can be evaluated upon the detector tuple
+            verbosity:            How much output this tool will display 
+            create_custom_header: Function that can be override ti create a custom set of headers, must return an array of 
+                                  strings
+            add_custom_variables: Function that takes reco_tree and truth_tree as inputs, and returns an array of numbers
+                                  that will be saved to the csv file 
         """
         self.input_file          = input_file
         self.detector_tuple_name = detector_tuple_name
         self.truth_tuple_name    = truth_tuple_name
         self.output_folder       = output_folder
-        self.weight              = "1.0"
+        self.weight              = weight
+        self.index_variable      = index_variable
         self.verbosity           = verbosity
         self.truth_variables     = truth_variables
         self.detector_variables  = detector_variables
@@ -76,15 +89,16 @@ class TupleCSVConverter:
             headers = self.create_custom_header()
             for header in headers:
                 self.out_file.write(header)
-                if header != self.truth_variables[-1] or len(self.truth_variables) > 0 or len(self.detector_variables) > 0:
+                if header != headers[-1] or len(self.truth_variables) > 0 or len(self.detector_variables) > 0:
                     self.out_file.write(", ")
 
-        # Examine truth variables 
-        for var in self.truth_variables:
-            self.out_file.write(clean_string(var) )
-            # Add a comma iff we are not the last item on this line 
-            if var != self.truth_variables[-1] or len(self.detector_variables) > 0:
-                self.out_file.write(", ")
+        # Examine truth variables if we are looking at this tuple
+        if self.index_variable != None:
+            for var in self.truth_variables:
+                self.out_file.write(clean_string(var) )
+                # Add a comma iff we are not the last item on this line 
+                if var != self.truth_variables[-1] or len(self.detector_variables) > 0:
+                    self.out_file.write(", ")
 
         # Examine reconstruction level variables 
         for var in self.detector_variables:
@@ -112,11 +126,17 @@ class TupleCSVConverter:
 
         # Get the tuples and synchronise them across eventNubers
         reco_tree  = in_file.Get(self.detector_tuple_name)
-        truth_tree = in_file.Get(self.truth_tuple_name)
+
+        # Only read the truth tree if it's defined
+        if self.index_variable != None:
+            truth_tree = in_file.Get(self.truth_tuple_name)
+        else:
+            truth_tree = None
 
         # Very costly for large files
-        reco_tree.BuildIndex('eventNumber')
-        truth_tree.BuildIndex('eventNumber')
+        if self.index_variable != None:
+            reco_tree.BuildIndex(self.index_variable)
+            truth_tree.BuildIndex(self.index_variable)
 
         # Construct the weight based upon the reco_cuts:
         weight_formula   = r.TTreeFormula("weight_formula", self.weight, reco_tree)
@@ -127,12 +147,15 @@ class TupleCSVConverter:
             reco_formulae.append(r.TTreeFormula(var, var, reco_tree))
 
         truth_formulae = []
-        for var in self.truth_variables:
-            reco_formulae.append(r.TTreeFormula(var, var, truth_tree))
+        if self.index_variable != None:
+           for var in self.truth_variables:
+               reco_formulae.append(r.TTreeFormula(var, var, truth_tree))
 
         for event in reco_tree:
             index = reco_tree.GetEntryNumberWithIndex(event.eventNumber)
-            truth_tree.GetEntry(index)
+            # Also read the truth level variable if we are trying to synchronise across two trees
+            if self.index_variable != None:
+                truth_tree.GetEntry(index)
 
             # Reject events that fail the cuts
             weight  = weight_formula.EvalInstance()
@@ -148,10 +171,11 @@ class TupleCSVConverter:
                    if var != custom_vars[-1] or len(truth_formulae) > 0 or len(reco_formulae) > 0:
                        self.out_file.write(",")
 
-            for formula in truth_formulae:
-                self.out_file.write( str(formula.EvalInstance()))
-                if formula != truth_formulae[-1] or len(reco_formulae) > 0:
-                    self.out_file.write( ", ")
+            if self.index_variable != None:
+                for formula in truth_formulae:
+                    self.out_file.write( str(formula.EvalInstance()))
+                    if formula != truth_formulae[-1] or len(reco_formulae) > 0:
+                        self.out_file.write( ", ")
 
 
             for formula in reco_formulae:
@@ -168,6 +192,8 @@ class TupleCSVConverter:
         if self.verbosity > 0:
             print (" [ CSV-CONVERTOR ] - " + message)
 
+
+# Example 
 
 def add_custom_variables(reco_event,truth_event):
     return [1.0]
@@ -194,6 +220,7 @@ def example_conversion():
                                      ],
                                      add_custom_variables = add_custom_variables,
                                      create_custom_header = create_custom_header,
+                                     index_variable = "eventNumber"
                                      )
 
     csv_convertor.create_csv(s.name)
