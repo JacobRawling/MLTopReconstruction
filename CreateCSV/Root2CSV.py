@@ -10,8 +10,6 @@
 
     NOTE: root has excellent compression, so expect file size to grow substantially with this tool
 """
-
-import settings as s
 import ROOT as r
 
 def open_file(file_name, option="READ" ):
@@ -181,6 +179,7 @@ class TupleCSVConverter:
                 if formula != reco_formulae[-1]:
                     self.out_file.write( ", ") 
             self.out_file.write("\n") 
+
 
 
         # Clean up the root file
