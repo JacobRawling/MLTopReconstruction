@@ -37,37 +37,40 @@ class TupleCSVConverter:
             verbosity = 1,
             create_custom_header= None,
             add_custom_variables= None,
-            weight              = "1.0",
             index_variable      = None
         ):
         """ 
             Converts a TTree to a csv file 
 
             input_file:           Root file input path 
-            tuple_name:  name of the first tuple in the root file 
-            friend_tuple_name:     name of a second tuple in the file
-            output_folder:        location that the csv will be saved to
+            tuple_name:           name of the first tuple in the root file 
+            friend_tuple_name:    name of a second tuple in the file
+            output_folder:        Location that the csv will be saved to
             cuts:                 A list of cuts for the reco events 
-            friend_variables:      A list of strings that can be evaluate upon the truth tuple
-            variables:   A list of strings that can be evaluated upon the detector tuple
+            friend_variables:     A list of strings that can be evaluate upon the truth tuple
+            variables:            A list of strings that can be evaluated upon the detector tuple
             verbosity:            How much output this tool will display 
-            create_custom_header: Function that can be override ti create a custom set of headers, must return an array of 
-                                  strings
-            add_custom_variables: Function that takes tree and friend_tree as inputs, and returns an array of numbers
-                                  that will be saved to the csv file 
+
+            create_custom_header: Function that can be override to create a custom set of headers, must return an array of 
+                                  strings 
+            add_custom_variables: Function that takes the tree and friend_tree as inputs, and returns an array of numbers
+                                  that will be saved to the csv file - allows for complicated functions that depend on 
+                                  either or both trees to be evaluated. See example_csv_conversion.py for an example 
+                                  implementation.
         """
-        self.input_file          = input_file
-        self.tuple_name = tuple_name
+        self.input_file           = input_file
+        self.tuple_name           = tuple_name
         self.friend_tuple_name    = friend_tuple_name
-        self.output_folder       = output_folder
-        self.weight              = weight
-        self.index_variable      = index_variable
-        self.verbosity           = verbosity
+        self.output_folder        = output_folder
+        self.index_variable       = index_variable
+        self.verbosity            = verbosity
         self.friend_variables     = friend_variables
-        self.variables  = variables
+        self.variables            = variables
+
         # Allow for cuts given in a ROOT::TTreeFormula expression style
+        self.selection            = "1.0"
         for cut in cuts:
-            self.weight += "*(" + cut +  ")"
+            self.selection += "*(" + cut +  ")"
 
         self.create_custom_header = create_custom_header
         self.add_custom_variables = add_custom_variables
@@ -135,7 +138,7 @@ class TupleCSVConverter:
             friend_tree.BuildIndex(self.index_variable)
 
         # Construct the weight based upon the cuts:
-        weight_formula   = r.TTreeFormula("weight_formula", self.weight, tree)
+        weight_formula   = r.TTreeFormula("weight_formula", self.selection, tree)
 
         # Create TTRee::Formulas for variables given as contsructors to save 
         formulae = []

@@ -8,49 +8,50 @@ from Root2CSV import TupleCSVConverter
 def add_custom_variables(reco_event,truth_event):
     """
         Example of adding custom variables to the csv - this is a dummy and returns the value of
-        1.o for every event. 
+        1.0 and the eventNumber twice for every event. 
 
-        The objects passed to this function are two TTrees. 
+        The objects passed to this function are the root2csv two TTrees. 
 
         This function MUST return an array 
     """
-    return [1.0]
+    return [1.0,reco_event.eventNumber,truth_event.eventNumber]
 
 def create_custom_header():
     """        
         Example of adding custom variable header to the csv - this is a dummy and returns the value of
-        a list with one entry ["dummy"]
+        a list with entries "dummy","reco_event_number", "truth_event_number"
     """
-    return ["dummy"]
+    return ["dummy","reco_event_number", "truth_event_number"]
 
 def example_conversion():
     """
         Main entry point of the file, converts a typical tuple into the desired output.
     """
     csv_convertor = TupleCSVConverter(
-                                     "test.root",
-                                     "nominal",
-                                     "truth",
-                                     "",
+                                     input_file = "test.root",
+                                     tuple_name = "nominal",
+                                     friend_tuple_name = "truth",
+                                     output_folder = "",
                                      # List of boolean cuts
                                      cuts = ["(ejets_2015 || ejets_2016 || mujets_2016 || mujets_2015)"],
-                                     # Example variables for the truth tree
-                                     truth_variables = [
-                                        "MC_b_from_tbar_pt",
-                                        "MC_b_from_tbar_eta"
-                                     ],
                                      # Example veariables for the detector tree
-                                     detector_variables = [
+                                     variables = [
                                         "top_lep.Pt()",
                                         "top_lep.Eta()",
+                                     ],
+                                     # Example variables for the truth tree
+                                     friend_variables = [
+                                        "MC_b_from_tbar_pt",
+                                        "MC_b_from_tbar_eta"
                                      ],
                                      # Add functions that will be called to create the header name
                                      # and evaluate the event level 
                                      add_custom_variables = add_custom_variables,
                                      create_custom_header = create_custom_header,
+                                     index_variable = "eventNumber"
                                      )
 
-    csv_convertor.create_csv("test.csv")
+    csv_convertor.create_csv(file_name = "test.csv")
     csv_convertor.convert()
     csv_convertor.close()
 
