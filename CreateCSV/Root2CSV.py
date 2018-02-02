@@ -1,5 +1,14 @@
 """ 
-    Converts a ROOT file with up to two tuples into a tuple 
+    Converts a ROOT file with up to two tuples into a tuple. 
+
+    Works with TTreeFormula class to allow a user to input a list of variable names to save. Also has support 
+    for abitrarily complicated variables to be with user defined evaluation of an event returing an array of 
+    variables to save in the csv. 
+
+    Aimed at users wishing to processess ROOT events with pandas or any other common data analysis framework that 
+    works with csv but not the ROOT format.
+
+    NOTE: root has excellent compression, so expect file size to grow substantially with this tool
 """
 
 import settings as s
@@ -189,42 +198,8 @@ class TupleCSVConverter:
         in_file.Close()
 
     def log(self,message):
+        """
+            Prints a message depending on the verbosity of this tool
+        """
         if self.verbosity > 0:
             print (" [ CSV-CONVERTOR ] - " + message)
-
-
-# Example 
-
-def add_custom_variables(reco_event,truth_event):
-    return [1.0]
-def create_custom_header():
-    return ["dummy"]
-
-def example_conversion():
-    """
-        Main entry point of the file, converts a typical tuple into the desired output.
-    """
-    csv_convertor = TupleCSVConverter(
-                                     s.input_file,
-                                     s.detector_tuple_name,
-                                     s.truth_tuple_name,
-                                     s.output_folder,
-                                     cuts = ["(ejets_2015 || ejets_2016 || mujets_2016 || mujets_2015)"],
-                                     truth_variables = [
-                                        "MC_b_from_tbar_pt",
-                                        "MC_b_from_tbar_eta"
-                                     ],
-                                     detector_variables = [
-                                        "top_lep.Pt()",
-                                        "top_lep.Eta()",
-                                     ],
-                                     add_custom_variables = add_custom_variables,
-                                     create_custom_header = create_custom_header,
-                                     index_variable = "eventNumber"
-                                     )
-
-    csv_convertor.create_csv(s.name)
-    csv_convertor.convert()
-    csv_convertor.close()
-
-example_conversion()
