@@ -18,15 +18,24 @@ class TupleCSVConverter:
             detector_tuple_name,
             truth_tuple_name,
             output_folder,
+            cuts = [""],
             verbosity = 1
         ):
+        """
 
+        """
         self.input_file          = input_file
         self.detector_tuple_name = detector_tuple_name
         self.truth_tuple_name    = truth_tuple_name
         self.output_folder       = output_folder
+        self.weight              = "1.0"
+        self.verbosity           = verbosity
 
-    def process_event(truth_event, reco_event):
+        # Allow for cuts given in a ROOT::TTreeFormula expression style
+        for cut in cuts:
+            self.weight += "*(" + cut +  ")"
+
+    def process_event(self,truth_event, reco_event):
         """
             For a given reco and truth event fill the CSV file that is currently ope n
         """
@@ -36,15 +45,18 @@ class TupleCSVConverter:
         """
             Opens a csv file and sets the headers
         """
+        self.log("Created file: " +  self.output_folder + file_name)
         self.out_file = open(self.output_folder + file_name,"w+")
-
+        assert not self.out_file.closed, (" FAILED TO OPEN FILE: "+  self.output_folder + file_name)
+        self.file_name = file_name
 
     def close(self):
         """
             Close the open csv file
         """
         self.out_file.close()
-
+        self.log( "Conversion successful.")
+        self.log( "Output file: " + self.output_folder + self.file_name)
     def convert(self):
         """
             Reads over the root file and fill the csv file.
@@ -55,7 +67,8 @@ class TupleCSVConverter:
         # Get the tuples and synchronise them across eventNubers
         reco_tree  = in_file.Get(self.detector_tuple_name)
         truth_tree = in_file.Get(self.truth_tuple_name)
-        # Very costly :O 
+
+        # Very costly for large files
         reco_tree.BuildIndex('eventNumber')
         truth_tree.BuildIndex('eventNumber')
 
@@ -66,11 +79,11 @@ class TupleCSVConverter:
             index = reco_tree.GetEntryNumberWithIndex(event.eventNumber)
             truth_tree.GetEntry(index)
 
-            # Do not bother weith events that fail the cuts
+            # Reject events that fail the cuts
             weight  = weight_formula.EvalInstance()
-
             if weight < 1.0:
                 continue
+
             self.process_event(event, truth_tree)
 
         # Clean up the root file
