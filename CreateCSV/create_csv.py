@@ -6,16 +6,20 @@
 import settings as s
 import ROOT as r
 
+def open_file(file_name, option="READ" ):
+    f = r.TFile(file_name,option)
+    assert f, ("ERROR: failed to open file: ",file_name)
+    return f
 
 class TupleCSVConverter:
-    def ___init__(
+    def __init__(
             self,
             input_file,
             detector_tuple_name,
             truth_tuple_name,
             output_folder,
             verbosity = 1
-        )
+        ):
 
         self.input_file          = input_file
         self.detector_tuple_name = detector_tuple_name
@@ -45,20 +49,48 @@ class TupleCSVConverter:
         """
             Reads over the root file and fill the csv file.
         """
+        # Read the root file 
+        in_file = open_file(self.input_file, "READ")
+
+        # Get the tuples and synchronise them across eventNubers
+        reco_tree  = in_file.Get(self.detector_tuple_name)
+        truth_tree = in_file.Get(self.truth_tuple_name)
+        # Very costly :O 
+        reco_tree.BuildIndex('eventNumber')
+        truth_tree.BuildIndex('eventNumber')
+
+        # Construct the weight based upon the reco_cuts:
+        weight_formula   = r.TTreeFormula("weight_formula", self.weight, reco_tree)
+
+        for event in reco_tree:
+            index = reco_tree.GetEntryNumberWithIndex(event.eventNumber)
+            truth_tree.GetEntry(index)
+
+            # Do not bother weith events that fail the cuts
+            weight  = weight_formula.EvalInstance()
+
+            if weight < 1.0:
+                continue
+            self.process_event(event, truth_tree)
+
+        # Clean up the root file
+        in_file.Close()
 
     def log(self,message):
         if self.verbosity > 0:
             print (" [ CSV-CONVERTOR ] - " + message)
-        
+
 def main():
     """
         Main entry point of the file, converts a typical tuple into the desired output.
     """
 
-    csv_convertor = TupleCSVConverter( s.input_file         
-                                     s.detector_tuple_name
-                                     s.truth_tuple_name   
-                                     s.output_folder       )
+    csv_convertor = TupleCSVConverter(
+                                     s.input_file,
+                                     s.detector_tuple_name,
+                                     s.truth_tuple_name,
+                                     s.output_folder      
+                                     )
 
     csv_convertor.create_csv(s.name)
     csv_convertor.convert()
