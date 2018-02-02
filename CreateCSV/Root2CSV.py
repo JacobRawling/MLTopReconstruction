@@ -74,17 +74,6 @@ class TupleCSVConverter:
         self.create_custom_header = create_custom_header
         self.add_custom_variables = add_custom_variables
 
-    def process_event(self,truth_event, reco_event):
-        """
-            For a given reco and truth event fill the CSV file that is currently ope n
-        """
-        pass
-        # Fill the top partonic information 
-
-        # Fill the reco jet information 
-
-        # Fill the leptonic W 
-
     def create_csv(self, file_name):
         """
             Opens a csv file and sets the headers
