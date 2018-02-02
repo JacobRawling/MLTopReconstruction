@@ -12,7 +12,7 @@
 """
 import ROOT as r
 
-def open_file(file_name, option="READ" ):
+def open_file(file_name, option="READ"):
     f = r.TFile(file_name,option)
     assert f, ("ERROR: failed to open file: ",file_name)
     return f
@@ -31,7 +31,7 @@ class TupleCSVConverter:
             detector_tuple_name,
             truth_tuple_name,
             output_folder,
-            cuts = [""],
+            cuts = [],
             truth_variables    = [],
             detector_variables = [],
             verbosity = 1,
@@ -179,7 +179,6 @@ class TupleCSVConverter:
                 if formula != reco_formulae[-1]:
                     self.out_file.write( ", ") 
             self.out_file.write("\n") 
-
 
 
         # Clean up the root file

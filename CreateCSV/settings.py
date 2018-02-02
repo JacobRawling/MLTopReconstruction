@@ -1,5 +1,5 @@
 input_file 			= "/Users/jrawling/Documents/Physics/DeadConeAnalysis/ATLASWork/samples/ttj/output.root"
 detector_tuple_name = "nominal"
 truth_tuple_name 	= "truth"
-output_folder		= ""
+output_folder		= "out/"
 name                = "ttj_jet_assignment.csv"

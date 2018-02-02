@@ -103,4 +103,5 @@ ENV/
 *.pyc
 ATLASStyle/
 RootHelperFunctions/
+*.csv
 out/
