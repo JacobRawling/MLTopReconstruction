@@ -30,7 +30,9 @@ class TupleCSVConverter:
             cuts = [""],
             truth_variables    = [""],
             detector_variables = [""],
-            verbosity = 1
+            verbosity = 1,
+            create_custom_header= None,
+            add_custom_variables= None,
         ):
         """
 
@@ -46,6 +48,9 @@ class TupleCSVConverter:
         # Allow for cuts given in a ROOT::TTreeFormula expression style
         for cut in cuts:
             self.weight += "*(" + cut +  ")"
+
+        self.create_custom_header = create_custom_header
+        self.add_custom_variables = add_custom_variables
 
     def process_event(self,truth_event, reco_event):
         """
@@ -67,13 +72,19 @@ class TupleCSVConverter:
         assert not self.out_file.closed, (" FAILED TO OPEN FILE: "+  self.output_folder + file_name)
         self.file_name = file_name
 
+        if self.create_custom_header != None:        
+            headers = self.create_custom_header()
+            for header in headers:
+                self.out_file.write(header)
+                if header != self.truth_variables[-1] or len(self.truth_variables) > 0 or len(self.detector_variables) > 0:
+                    self.out_file.write(", ")
+
         # Examine truth variables 
         for var in self.truth_variables:
             self.out_file.write(clean_string(var) )
             # Add a comma iff we are not the last item on this line 
             if var != self.truth_variables[-1] or len(self.detector_variables) > 0:
                 self.out_file.write(", ")
-
 
         # Examine reconstruction level variables 
         for var in self.detector_variables:
@@ -129,13 +140,18 @@ class TupleCSVConverter:
                 continue
 
             # Also allow for a more complicated analysis of eents 
-            self.process_event(event, truth_tree)
+            if self.add_custom_variables != None:
+                custom_vars = self.add_custom_variables(event, truth_tree)
+                # Save these to the file 
+                for var in custom_vars:
+                   self.out_file.write(str(var))
+                   if var != custom_vars[-1] or len(truth_formulae) > 0 or len(reco_formulae) > 0:
+                       self.out_file.write(",")
 
             for formula in truth_formulae:
                 self.out_file.write( str(formula.EvalInstance()))
                 if formula != truth_formulae[-1] or len(reco_formulae) > 0:
                     self.out_file.write( ", ")
-
 
 
             for formula in reco_formulae:
@@ -151,6 +167,12 @@ class TupleCSVConverter:
     def log(self,message):
         if self.verbosity > 0:
             print (" [ CSV-CONVERTOR ] - " + message)
+
+
+def add_custom_variables(reco_event,truth_event):
+    return [1.0]
+def create_custom_header():
+    return ["dummy"]
 
 def example_conversion():
     """
@@ -169,7 +191,9 @@ def example_conversion():
                                      detector_variables = [
                                         "top_lep.Pt()",
                                         "top_lep.Eta()",
-                                     ]
+                                     ],
+                                     add_custom_variables = add_custom_variables,
+                                     create_custom_header = create_custom_header,
                                      )
 
     csv_convertor.create_csv(s.name)
