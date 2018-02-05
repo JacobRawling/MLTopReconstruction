@@ -9,6 +9,7 @@
     works with csv but not the ROOT format.
 
     NOTE: root has excellent compression, so expect file size to grow substantially with this tool
+    Requires pyROOT installed.
 """
 import ROOT as r
 
