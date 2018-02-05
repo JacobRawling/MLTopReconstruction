@@ -1,5 +1,7 @@
 input_file 			= "/Users/jrawling/Documents/Physics/DeadConeAnalysis/ATLASWork/samples/ttj/output.root"
+input_file 			= "/Users/jrawling/Documents/Physics/DeadConeAnalysis/ATLASWork/samples/ttj/410501_minisample.root"
+input_file 			= "/Users/jrawling/Documents/Physics/DeadConeAnalysis/ATLASWork/samples/ttj/410501.root"
 detector_tuple_name = "nominal"
 truth_tuple_name 	= "truth"
 output_folder		= "out/"
-name                = "ttj_jet_assignment.csv"
+output_file_name    = "ttj_mini.csv"
